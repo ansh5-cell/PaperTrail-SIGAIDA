@@ -1,0 +1,10 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Collected data and vector DB (regenerate with the collectors)
+data/
