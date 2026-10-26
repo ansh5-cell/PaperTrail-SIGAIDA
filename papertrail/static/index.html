@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Trail</title>
+<style>
+  :root {
+    --bg: #f7f6f2; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6a65;
+    --border: #e2e0d8; --accent: #2f5d8a; --accent-text: #ffffff; --error: #a3322a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --panel: #201f1d; --text: #ecebe6; --muted: #a3a29b;
+      --border: #34332f; --accent: #7fb0e0; --accent-text: #10202f; --error: #f08a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; }
+  .tagline { margin: 4px 0 24px; color: var(--muted); }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 320px; padding: 12px 14px; font: inherit; color: var(--text);
+                     background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  button { padding: 12px 16px; font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
+           border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); }
+  button.secondary { background: transparent; color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  #status { margin: 20px 0 0; color: var(--muted); min-height: 1.5em; }
+  #status.error { color: var(--error); }
+  .answer { margin-top: 16px; padding: 18px 20px; background: var(--panel);
+            border: 1px solid var(--border); border-radius: 10px; white-space: pre-wrap; }
+  .answer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 28px 0 8px; }
+  ol.papers { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .paper { padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .paper:target { border-color: var(--accent); }
+  .paper a.title { color: var(--text); font-weight: 600; text-decoration: none; }
+  .paper a.title:hover { color: var(--accent); }
+  .meta { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .abstract { font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3;
+              -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .abstract.open { -webkit-line-clamp: unset; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Paper Trail</h1>
+  <p class="tagline">Ask a research question and get an answer backed by real papers on LLMs and RAG.</p>
+
+  <form id="form">
+    <input id="q" type="text" placeholder="e.g. How do you reduce hallucination in RAG?" autocomplete="off" required>
+    <button type="submit" data-mode="ask">Ask Claude</button>
+    <button type="submit" data-mode="search" class="secondary">Just search</button>
+  </form>
+
+  <p id="status" role="status"></p>
+  <div id="results"></div>
+</main>
+
+<script>
+  const form = document.getElementById("form");
+  const input = document.getElementById("q");
+  const statusEl = document.getElementById("status");
+  const results = document.getElementById("results");
+
+  function escapeHtml(text) {
+    return String(text ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
+
+  function renderPapers(papers) {
+    const items = papers.map((p, i) => {
+      const authors = p.authors.slice(0, 4).join(", ") + (p.authors.length > 4 ? " et al." : "");
+      const bits = [p.year, authors, p.source.replace(",", " + ")];
+      if (p.citation_count != null) bits.push(`${p.citation_count} citations`);
+      bits.push(`match ${Math.round(p.similarity * 100)}%`);
+      return `<li class="paper" id="paper-${i + 1}">
+        <a class="title" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">[${i + 1}] ${escapeHtml(p.title)}</a>
+        <div class="meta">${bits.filter(Boolean).map(escapeHtml).join(" · ")}</div>
+        <p class="abstract" title="Click to expand">${escapeHtml(p.abstract)}</p>
+      </li>`;
+    }).join("");
+    return `<h2>Papers</h2><ol class="papers">${items}</ol>`;
+  }
+
+  function renderAnswer(text) {
+    // Turn [1], [2] citations into links that jump to the matching paper
+    const linked = escapeHtml(text).replace(/\[(\d+)\]/g, '<a href="#paper-$1">[$1]</a>');
+    return `<h2>Answer</h2><div class="answer">${linked}</div>`;
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const mode = event.submitter?.dataset.mode || "ask";
+    const q = input.value.trim();
+    if (!q) return;
+
+    form.querySelectorAll("button").forEach(b => b.disabled = true);
+    statusEl.className = "";
+    statusEl.textContent = mode === "ask" ? "Finding papers and asking Claude..." : "Searching papers...";
+    results.innerHTML = "";
+
+    try {
+      const response = await fetch(`/${mode}?` + new URLSearchParams({ q, k: 5 }));
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail?.[0]?.msg || data.detail || `Error ${response.status}`);
+      results.innerHTML = (data.answer ? renderAnswer(data.answer) : "") + renderPapers(data.papers);
+      statusEl.textContent = "";
+    } catch (error) {
+      statusEl.className = "error";
+      statusEl.textContent = error.message;
+    } finally {
+      form.querySelectorAll("button").forEach(b => b.disabled = false);
+    }
+  });
+
+  results.addEventListener("click", event => {
+    if (event.target.classList.contains("abstract")) event.target.classList.toggle("open");
+  });
+</script>
+</body>
+</html>
