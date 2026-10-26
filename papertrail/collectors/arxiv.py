@@ -4,13 +4,11 @@ Run it with:  python -m papertrail.collectors.arxiv --max 300
 """
 
 import argparse
-import json
 import time
 import xml.etree.ElementTree as ET
 
-import requests
-
-from papertrail.config import DATA_DIR, TOPIC_TERMS
+from papertrail.collectors.common import get_with_retry, save
+from papertrail.config import TOPIC_TERMS
 from papertrail.schema import Paper
 
 API_URL = "https://export.arxiv.org/api/query"
@@ -58,8 +56,7 @@ def fetch_papers(max_results: int, terms: list[str] = TOPIC_TERMS) -> list[Paper
             "max_results": min(PAGE_SIZE, max_results - start),
             "sortBy": "relevance",
         }
-        response = requests.get(API_URL, params=params, timeout=30)
-        response.raise_for_status()
+        response = get_with_retry(API_URL, params)
 
         entries = ET.fromstring(response.content).findall("atom:entry", NS)
         if not entries:
@@ -73,17 +70,8 @@ def fetch_papers(max_results: int, terms: list[str] = TOPIC_TERMS) -> list[Paper
     return papers
 
 
-def save(papers: list[Paper], filename: str = "arxiv.jsonl") -> None:
-    DATA_DIR.mkdir(exist_ok=True)
-    path = DATA_DIR / filename
-    with path.open("w") as f:
-        for paper in papers:
-            f.write(json.dumps(paper.to_dict()) + "\n")
-    print(f"Saved {len(papers)} papers to {path}")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Collect papers from arXiv.")
     parser.add_argument("--max", type=int, default=300, help="how many papers to fetch")
     args = parser.parse_args()
-    save(fetch_papers(args.max))
+    save(fetch_papers(args.max), "arxiv.jsonl")
