@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
+CHROMA_DIR = DATA_DIR / "chroma"
+
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+COLLECTION_NAME = "papers"
 
 load_dotenv(ROOT / ".env")
 
