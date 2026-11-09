@@ -77,7 +77,6 @@
       const authors = p.authors.slice(0, 4).join(", ") + (p.authors.length > 4 ? " et al." : "");
       const bits = [p.year, authors, p.source.replace(",", " + ")];
       if (p.citation_count != null) bits.push(`${p.citation_count} citations`);
-      bits.push(`match ${Math.round(p.similarity * 100)}%`);
       return `<li class="paper" id="paper-${i + 1}">
         <a class="title" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">[${i + 1}] ${escapeHtml(p.title)}</a>
         <div class="meta">${bits.filter(Boolean).map(escapeHtml).join(" · ")}</div>
