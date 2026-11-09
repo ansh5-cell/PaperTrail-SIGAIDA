@@ -25,8 +25,10 @@ The starting topic is **LLMs and RAG**. You can change it in `papertrail/config.
 
 1. **Collect.** Each collector pulls papers for the topic terms and converts them into one shared format:
    title, abstract, authors, year, source, citation count, and link.
-2. **Merge.** Papers from all sources go into one table. Duplicates are matched by normalized title, keeping
-   the most complete value for each field (for example, the arXiv PDF link and the OpenAlex citation count).
+2. **Clean and merge.** Papers from all sources go into one table. Duplicates are matched by normalized title,
+   keeping the most complete value for each field (for example, the arXiv PDF link and the OpenAlex citation
+   count). Fake abstracts (citation text or repository boilerplate that some sources return) are removed, and
+   the real abstract is looked up on arXiv by title when possible. Papers with no usable abstract are dropped.
 3. **Index.** Each paper's title and abstract are turned into a vector with the pretrained
    [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) model and stored in a local
    [Chroma](https://www.trychroma.com/) vector database.
@@ -73,6 +75,7 @@ Useful options:
 
 - `--skip semantic_scholar` skips a source.
 - `--no-collect` rebuilds from data you've already collected.
+- `--no-backfill` skips the arXiv abstract lookups (works offline).
 
 Each step can also run on its own:
 
@@ -83,6 +86,17 @@ python -m papertrail.collectors.semantic_scholar --max 300
 python -m papertrail.merge
 python -m papertrail.index
 ```
+
+**Measure search quality:**
+
+```bash
+python -m papertrail.evaluate
+```
+
+This runs the test questions in `eval/questions.json`, each listing the papers a good search should find, and
+writes [`eval/RESULTS.md`](eval/RESULTS.md). The current baseline with all-MiniLM-L6-v2 is **Hit@5 65%,
+Recall@5 59%, MRR 0.39** over 20 questions. Some misses are real (famous papers like Self-RAG rank 10–19) and
+some are gaps in the labels (the knowledge graph question returns other relevant KG papers).
 
 **Try it from the command line:**
 
@@ -121,6 +135,7 @@ curl "http://127.0.0.1:8000/search?q=graph%20retrieval&k=3"
 papertrail/
   collectors/      arxiv.py, semantic_scholar.py, openalex.py, common.py (retries, saving)
   schema.py        the shared Paper format
+  clean.py         remove fake abstracts and recover real ones from arXiv
   merge.py         combine sources and remove duplicates
   embeddings.py    all-MiniLM-L6-v2 wrapper
   index.py         build the Chroma vector database
@@ -128,7 +143,9 @@ papertrail/
   answer.py        RAG answers with Claude
   api.py           FastAPI app (/, /search, /ask)
   pipeline.py      run everything in one command
+  evaluate.py      measure search quality on test questions
   static/          the web page
+eval/             test questions and the latest results report
 tests/             pytest suite (run with: pytest)
 data/              collected papers and the vector DB (generated, not committed)
 ```
@@ -149,6 +166,8 @@ The tests use fakes for the external APIs and Claude, so they run offline withou
 - [x] `/search` endpoint
 - [x] `/ask` endpoint with Claude and citations
 - [x] Web page
+- [x] Clean fake abstracts and recover real ones from arXiv
+- [x] Evaluate retrieval quality on a set of test questions
 - [ ] Collect Semantic Scholar data (waiting on an API key)
 - [ ] Test `/ask` against the live Claude API
-- [ ] Evaluate retrieval quality on a set of test questions
+- [ ] Improve search quality (for example, keyword + vector hybrid search or a reranker)

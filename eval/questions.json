@@ -1,0 +1,109 @@
+[
+  {
+    "question": "How can I automatically score a RAG pipeline without human-written reference answers?",
+    "relevant": [
+      "RAGAs: Automated Evaluation of Retrieval Augmented Generation",
+      "ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems"
+    ]
+  },
+  {
+    "question": "Can a model decide on its own when to fetch documents and critique what it generated?",
+    "relevant": [
+      "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+      "Active Retrieval Augmented Generation"
+    ]
+  },
+  {
+    "question": "What should a RAG system do when the retrieved documents are wrong or irrelevant?",
+    "relevant": ["Corrective Retrieval Augmented Generation"]
+  },
+  {
+    "question": "What was the original paper that combined a retriever with a seq2seq generator for knowledge-heavy tasks?",
+    "relevant": ["Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"]
+  },
+  {
+    "question": "Is there an overview of the different paradigms of retrieval augmentation for LLMs?",
+    "relevant": [
+      "Retrieval-Augmented Generation for Large Language Models: A Survey",
+      "Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG"
+    ]
+  },
+  {
+    "question": "How big should the text pieces be when splitting documents for retrieval?",
+    "relevant": [
+      "The Effect of Text Chunk Size on Retrieval-Augmented Generation Performance",
+      "Evaluating Chunking Strategies for Retrieval-Augmented Generation on Academic Texts"
+    ]
+  },
+  {
+    "question": "Can a retrieval database leak private information through the model's answers?",
+    "relevant": ["The Good and The Bad: Exploring Privacy Issues in Retrieval-Augmented Generation (RAG)"]
+  },
+  {
+    "question": "Using knowledge graphs together with retrieval-augmented generation",
+    "relevant": [
+      "Knowledge Graph-Guided Retrieval Augmented Generation",
+      "Graph Retrieval-Augmented Generation for Large Language Models: A Survey",
+      "Retrieval-Augmented Generation with Knowledge Graphs for Customer Service Question Answering",
+      "Unifying Large Language Models and Knowledge Graphs: A Roadmap"
+    ]
+  },
+  {
+    "question": "Which benchmark tests how robust LLMs are to noisy or missing retrieved context?",
+    "relevant": ["Benchmarking Large Language Models in Retrieval-Augmented Generation"]
+  },
+  {
+    "question": "A taxonomy of why language models make things up and how to fix it",
+    "relevant": ["Siren's Song in the AI Ocean: A Survey on Hallucination in Large Language Models"]
+  },
+  {
+    "question": "Detecting made-up content using the probabilities the model assigns to its own tokens",
+    "relevant": [
+      "Detecting LLM Hallucinations Using Monte Carlo Simulations on Token Probabilities",
+      "Chainpoll: A high efficacy method for LLM hallucination detection",
+      "HalluCounter: Reference-free LLM Hallucination Detection in the Wild!"
+    ]
+  },
+  {
+    "question": "Do LLMs invent fake references when asked for academic sources?",
+    "relevant": ["LLM Hallucination of Citations in Economics Persists With Web‐Enabled Models"]
+  },
+  {
+    "question": "Does a cited source actually support what the model said, or was the citation added after the fact?",
+    "relevant": ["Correctness is not Faithfulness in Retrieval Augmented Generation Attributions"]
+  },
+  {
+    "question": "Retrieval-augmented question answering for doctors and medicine",
+    "relevant": [
+      "Benchmarking Retrieval-Augmented Generation for Medicine",
+      "Enhancing medical AI with retrieval-augmented generation: A mini narrative review"
+    ]
+  },
+  {
+    "question": "Reducing made-up case law in legal AI assistants",
+    "relevant": ["ConsRAG: Minimize LLM Hallucinations in the Legal Domain"]
+  },
+  {
+    "question": "A language model trained specifically on financial data",
+    "relevant": ["BloombergGPT: A Large Language Model for Finance", "Large Language Models in Finance: A Survey"]
+  },
+  {
+    "question": "Can attackers pull memorized training examples out of a language model?",
+    "relevant": ["Extracting Training Data from Large Language Models"]
+  },
+  {
+    "question": "Making LLM inference servers use GPU memory more efficiently",
+    "relevant": ["Efficient Memory Management for Large Language Model Serving with PagedAttention"]
+  },
+  {
+    "question": "Getting better reasoning just by asking the model to think step by step",
+    "relevant": [
+      "Large Language Models Are Zero-Shot Reasoners",
+      "Tree of Thoughts: Deliberate Problem Solving with Large Language Models"
+    ]
+  },
+  {
+    "question": "Answering research questions by following which papers cite each other",
+    "relevant": ["CG-RAG: Research Question Answering by Citation Graph Retrieval-Augmented LLMs"]
+  }
+]
