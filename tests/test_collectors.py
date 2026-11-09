@@ -1,6 +1,10 @@
+import json
 import xml.etree.ElementTree as ET
+from types import SimpleNamespace
 
-from papertrail.collectors import arxiv
+import requests
+
+from papertrail.collectors import arxiv, common, semantic_scholar
 from papertrail.collectors.openalex import parse_work, rebuild_abstract
 from papertrail.collectors.semantic_scholar import parse_item
 
@@ -73,3 +77,55 @@ def test_semantic_scholar_parse_item():
     assert paper.authors == ["A B"]
     assert paper.citation_count == 12
     assert paper.source == "semantic_scholar"
+
+
+def test_semantic_scholar_saves_usable_results(monkeypatch, tmp_path):
+    usable = {
+        "paperId": "abc",
+        "title": "RAG for QA",
+        "abstract": "An abstract.",
+        "url": "https://www.semanticscholar.org/paper/abc",
+    }
+
+    def respond(url, params, headers):
+        assert url == semantic_scholar.API_URL
+        assert params["query"] == "RAG"
+        assert headers == {"x-api-key": "offline-test-key"}
+        return SimpleNamespace(json=lambda: {"data": [usable, usable, {"paperId": "missing"}]})
+
+    monkeypatch.setattr(semantic_scholar, "SEMANTIC_SCHOLAR_API_KEY", "offline-test-key")
+    monkeypatch.setattr(semantic_scholar, "get_with_retry", respond)
+    monkeypatch.setattr(common, "DATA_DIR", tmp_path)
+    papers = semantic_scholar.fetch_papers(3, terms=["RAG"])
+    common.save(papers, "semantic_scholar.jsonl")
+
+    records = (tmp_path / "semantic_scholar.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(records) == 1
+    record = json.loads(records[0])
+    assert record["title"] == usable["title"]
+    assert record["abstract"] == usable["abstract"]
+    assert record["url"] == usable["url"]
+    assert record["source"] == "semantic_scholar"
+
+
+def test_semantic_scholar_rate_limit_preserves_cached_file(monkeypatch, tmp_path):
+    cached = tmp_path / "semantic_scholar.jsonl"
+    cached.write_bytes(b'{"title": "Previously collected paper"}\n')
+    original = cached.read_bytes()
+
+    def rate_limited(url, params, headers, timeout):
+        assert headers is None
+        response = requests.Response()
+        response.status_code = 429
+        return response
+
+    monkeypatch.setattr(semantic_scholar, "SEMANTIC_SCHOLAR_API_KEY", "")
+    monkeypatch.setattr(common, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(common.requests, "get", rate_limited)
+    monkeypatch.setattr(common.time, "sleep", lambda seconds: None)
+
+    papers = semantic_scholar.fetch_papers(3, terms=["RAG"])
+    common.save(papers, cached.name)
+
+    assert papers == []
+    assert cached.read_bytes() == original
