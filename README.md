@@ -12,15 +12,15 @@ The starting topic is **LLMs and RAG**. You can change it in `papertrail/config.
 ## How it works
 
 ```
- arXiv ─────────┐
- Semantic Scholar ┼─► collectors ─► merge + dedupe ─► embeddings ─► Chroma vector DB
- OpenAlex ──────┘    (one schema)    (by title)      (MiniLM)          │
-                                                                        ▼
-                         question ─► embed question ─► top 5 by cosine similarity
-                                                                        │
-                                                         /search ◄──────┤
-                                                                        ▼
-                                                         /ask ◄── Claude answers with [n] citations
+arXiv ────────────┐
+Semantic Scholar ─┼─► collect ─► clean + merge ─► embed (MiniLM) ─► Chroma vector DB
+OpenAlex ─────────┘                                                      │
+                                                                         ▼
+question ─► embed question ─► top 30 by cosine similarity ─► rerank ─► top 5 papers
+                                                                         │
+                                                      /search ◄──────────┤
+                                                                         ▼
+                                                      /ask ◄── Claude answers with [n] citations
 ```
 
 1. **Collect.** Each collector pulls papers for the topic terms and converts them into one shared format:
@@ -32,7 +32,11 @@ The starting topic is **LLMs and RAG**. You can change it in `papertrail/config.
 3. **Index.** Each paper's title and abstract are turned into a vector with the pretrained
    [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) model and stored in a local
    [Chroma](https://www.trychroma.com/) vector database.
-4. **Search.** A question is embedded the same way and compared to every paper with cosine similarity.
+4. **Search.** A question is embedded the same way, and the 30 closest papers by cosine similarity become
+   candidates. A cross-encoder reranker
+   ([ms-marco-MiniLM-L-6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2)) then reads the
+   question next to each candidate and re-orders them. This is slower than comparing vectors, but much more
+   accurate.
 5. **Answer.** The top papers and the question go to Claude, which answers using only those papers.
 
 ## Data sources
@@ -94,9 +98,16 @@ python -m papertrail.evaluate
 ```
 
 This runs the test questions in `eval/questions.json`, each listing the papers a good search should find, and
-writes [`eval/RESULTS.md`](eval/RESULTS.md). The current baseline with all-MiniLM-L6-v2 is **Hit@5 65%,
-Recall@5 59%, MRR 0.39** over 20 questions. Some misses are real (famous papers like Self-RAG rank 10–19) and
-some are gaps in the labels (the knowledge graph question returns other relevant KG papers).
+writes [`eval/RESULTS.md`](eval/RESULTS.md). Add `--no-rerank` to compare against embedding search alone.
+
+| Search | Hit@5 | Recall@5 | MRR |
+|---|---|---|---|
+| Embeddings only (all-MiniLM-L6-v2) | 65% | 59% | 0.39 |
+| Keyword only (BM25) | 70% | 57% | 0.50 |
+| Hybrid (embeddings + BM25) | 85% | 67% | 0.62 |
+| **Embeddings + reranker (current)** | **95%** | **78%** | **0.77** |
+
+Reranking costs about 0.3 seconds per search on a laptop CPU, compared with about 0.03 seconds without it.
 
 **Try it from the command line:**
 
@@ -139,7 +150,8 @@ papertrail/
   merge.py         combine sources and remove duplicates
   embeddings.py    all-MiniLM-L6-v2 wrapper
   index.py         build the Chroma vector database
-  search.py        cosine-similarity search
+  search.py        cosine-similarity search, then reranking
+  rerank.py        cross-encoder reranker
   answer.py        RAG answers with Claude
   api.py           FastAPI app (/, /search, /ask)
   pipeline.py      run everything in one command
@@ -170,4 +182,4 @@ The tests use fakes for the external APIs and Claude, so they run offline withou
 - [x] Evaluate retrieval quality on a set of test questions
 - [ ] Collect Semantic Scholar data (waiting on an API key)
 - [ ] Test `/ask` against the live Claude API
-- [ ] Improve search quality (for example, keyword + vector hybrid search or a reranker)
+- [x] Improve search quality with a reranker (Hit@5 65% → 95%)
