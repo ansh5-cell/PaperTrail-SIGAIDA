@@ -11,7 +11,7 @@ import time
 from papertrail.collectors import arxiv, openalex, semantic_scholar
 from papertrail.collectors.common import save
 from papertrail.index import build_index
-from papertrail.merge import load_papers, merge, save_csv
+from papertrail.merge import build_table, load_papers, save_csv
 
 COLLECTORS = {
     "arxiv": arxiv.fetch_papers,
@@ -20,7 +20,7 @@ COLLECTORS = {
 }
 
 
-def run(max_per_source: int, skip: list[str], collect: bool = True) -> None:
+def run(max_per_source: int, skip: list[str], collect: bool = True, backfill: bool = True) -> None:
     started = time.time()
 
     if collect:
@@ -31,9 +31,9 @@ def run(max_per_source: int, skip: list[str], collect: bool = True) -> None:
             print(f"\n== Collecting from {name} ==")
             save(fetch(max_per_source), f"{name}.jsonl")
 
-    print("\n== Merging and removing duplicates ==")
+    print("\n== Cleaning, merging, and removing duplicates ==")
     all_papers = load_papers()
-    combined = merge(all_papers)
+    combined = build_table(all_papers, backfill=backfill)
     print(f"{len(all_papers)} papers in, {len(combined)} unique papers out")
     save(combined, "papers.jsonl")
     save_csv(combined)
@@ -49,5 +49,6 @@ if __name__ == "__main__":
     parser.add_argument("--max", type=int, default=300, help="papers to fetch from each source")
     parser.add_argument("--skip", nargs="*", default=[], choices=list(COLLECTORS), help="sources to skip")
     parser.add_argument("--no-collect", action="store_true", help="reuse data already in data/")
+    parser.add_argument("--no-backfill", action="store_true", help="don't look up missing abstracts on arXiv")
     args = parser.parse_args()
-    run(args.max, args.skip, collect=not args.no_collect)
+    run(args.max, args.skip, collect=not args.no_collect, backfill=not args.no_backfill)

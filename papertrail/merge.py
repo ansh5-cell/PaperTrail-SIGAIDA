@@ -1,15 +1,18 @@
 """Combine every collected source into one table, removing duplicate papers by title.
 
 Run it with:  python -m papertrail.merge
+Skip the arXiv abstract lookups (offline):  python -m papertrail.merge --no-backfill
 
 Reads whichever of data/arxiv.jsonl, data/semantic_scholar.jsonl, data/openalex.jsonl exist
 and writes data/papers.jsonl (used by the search) plus data/papers.csv (easy to open in Excel/Sheets).
 """
 
+import argparse
 import csv
 import json
 import re
 
+from papertrail.clean import backfill_from_arxiv, clean_papers
 from papertrail.collectors.common import save
 from papertrail.config import DATA_DIR
 from papertrail.schema import Paper
@@ -57,13 +60,29 @@ def combine(existing: Paper, duplicate: Paper) -> Paper:
 
 
 def merge(papers: list[Paper]) -> list[Paper]:
+    """Combine duplicates. Papers without an abstract are kept so another copy can supply one."""
     merged: dict[str, Paper] = {}
     for paper in papers:
         key = normalize_title(paper.title)
-        if not key or not paper.abstract:
+        if not key:
             continue
         merged[key] = combine(merged[key], paper) if key in merged else paper
     return list(merged.values())
+
+
+def build_table(papers: list[Paper], backfill: bool = True) -> list[Paper]:
+    """Clean abstracts, merge duplicates, recover missing abstracts, and drop what's still unusable."""
+    blanked = clean_papers(papers)
+    print(f"Cleaned abstracts ({blanked} were citations or boilerplate, not real abstracts)")
+    combined = merge(papers)
+
+    if backfill and any(not p.abstract for p in combined):
+        print("Looking up missing abstracts on arXiv...")
+        print(f"Recovered {backfill_from_arxiv(combined)} abstracts from arXiv")
+
+    usable = [p for p in combined if p.abstract]
+    print(f"Dropped {len(combined) - len(usable)} papers with no usable abstract")
+    return usable
 
 
 def save_csv(papers: list[Paper], filename: str = "papers.csv") -> None:
@@ -79,8 +98,12 @@ def save_csv(papers: list[Paper], filename: str = "papers.csv") -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Merge collected papers into one table.")
+    parser.add_argument("--no-backfill", action="store_true", help="don't look up missing abstracts on arXiv")
+    args = parser.parse_args()
+
     all_papers = load_papers()
-    combined = merge(all_papers)
+    combined = build_table(all_papers, backfill=not args.no_backfill)
     print(f"{len(all_papers)} papers in, {len(combined)} unique papers out")
     save(combined, "papers.jsonl")
     save_csv(combined)
