@@ -170,6 +170,33 @@ pytest
 
 The tests use fakes for the external APIs and Claude, so they run offline without any keys.
 
+## Verify the live demo
+
+1. Set `SEMANTIC_SCHOLAR_API_KEY` and `ANTHROPIC_API_KEY` in your local `.env`. In a fresh checkout,
+   collect a small batch first.
+
+   ```bash
+   python -m papertrail.collectors.semantic_scholar --max 30
+   ```
+
+   Check that `data/semantic_scholar.jsonl` contains records with titles, abstracts, and paper links.
+   If the collector reports HTTP 429 or saves no papers, resolve that before proceeding.
+
+2. Build the index from the collected papers and start the app.
+
+   ```bash
+   python -X utf8 -m papertrail.pipeline --no-collect --no-backfill
+   uvicorn papertrail.api:app
+   ```
+
+3. Search for a topic covered by the abstracts, then ask a specific question the returned papers can
+   answer. Check that each citation opens the corresponding source card and that its abstract supports the
+   claim. Ask a second question whose answer is absent from the retrieved abstracts, such as the name of
+   a paper's internal code-review tool. Check that the answer says the sources lack that detail.
+
+The offline tests cover the collector and the `/ask` request and response path with simulated provider
+replies. The live steps check provider access and the quality of actual answers.
+
 ## Status
 
 - [x] arXiv, OpenAlex, and Semantic Scholar collectors
