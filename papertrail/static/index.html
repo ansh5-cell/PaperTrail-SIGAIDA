@@ -3,68 +3,755 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Paper Trail</title>
+<title>Paper Trail — Grounded Research Assistant</title>
 <style>
   :root {
-    --bg: #f7f6f2; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6a65;
-    --border: #e2e0d8; --accent: #2f5d8a; --accent-text: #ffffff; --error: #a3322a;
+    --bg: #f8f7f4;
+    --bg-glow: rgba(37, 99, 235, 0.06);
+    --panel: #ffffff;
+    --panel-subtle: #f3f1ec;
+    --text: #18181b;
+    --text-secondary: #52525b;
+    --muted: #71717a;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-soft: rgba(37, 99, 235, 0.1);
+    --accent-text: #ffffff;
+    --success: #16a34a;
+    --error: #dc2626;
+    --error-soft: rgba(220, 38, 38, 0.08);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-sm: 7px;
   }
+
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161614; --panel: #201f1d; --text: #ecebe6; --muted: #a3a29b;
-      --border: #34332f; --accent: #7fb0e0; --accent-text: #10202f; --error: #f08a80;
+      --bg: #0f1012;
+      --bg-glow: rgba(96, 165, 250, 0.08);
+      --panel: #17181c;
+      --panel-subtle: #1e2025;
+      --text: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --muted: #71717a;
+      --border: #27272a;
+      --border-strong: #3f3f46;
+      --accent: #60a5fa;
+      --accent-hover: #93c5fd;
+      --accent-soft: rgba(96, 165, 250, 0.14);
+      --accent-text: #0b1120;
+      --success: #4ade80;
+      --error: #f87171;
+      --error-soft: rgba(248, 113, 113, 0.12);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 12px 32px -4px rgba(0, 0, 0, 0.45);
     }
   }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
-  h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; }
-  .tagline { margin: 4px 0 24px; color: var(--muted); }
-  form { display: flex; gap: 8px; flex-wrap: wrap; }
-  input[type=text] { flex: 1 1 320px; padding: 12px 14px; font: inherit; color: var(--text);
-                     background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
-  button { padding: 12px 16px; font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
-           border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); }
-  button.secondary { background: transparent; color: var(--accent); }
-  button:disabled { opacity: 0.5; cursor: wait; }
-  #status { margin: 20px 0 0; color: var(--muted); min-height: 1.5em; }
-  #status.error { color: var(--error); }
-  .answer { margin-top: 16px; padding: 18px 20px; background: var(--panel);
-            border: 1px solid var(--border); border-radius: 10px; white-space: pre-wrap; }
-  .answer a { color: var(--accent); font-weight: 600; text-decoration: none; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 28px 0 8px; }
-  ol.papers { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-  .paper { padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
-  .paper:target { border-color: var(--accent); }
-  .paper a.title { color: var(--text); font-weight: 600; text-decoration: none; }
-  .paper a.title:hover { color: var(--accent); }
-  .meta { font-size: 14px; color: var(--muted); margin-top: 2px; }
-  .abstract { font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3;
-              -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
-  .abstract.open { -webkit-line-clamp: unset; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse 80% 45% at 50% -10%, var(--bg-glow), transparent), var(--bg);
+    color: var(--text);
+    font: 15.5px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Top Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--panel) 80%, transparent);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .nav-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .brand-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .brand-name {
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .topic-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel-subtle);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px 4px 10px;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+  }
+
+  .topic-control label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .topic-control select {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font: 600 13px inherit;
+    cursor: pointer;
+    outline: none;
+    padding-right: 4px;
+  }
+
+  /* Main Container */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 44px 20px 80px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .hero h1 {
+    margin: 0;
+    font-size: clamp(26px, 4vw, 34px);
+    font-weight: 750;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .hero p {
+    margin: 8px auto 0;
+    max-width: 540px;
+    color: var(--text-secondary);
+    font-size: 15.5px;
+  }
+
+  /* Unified Search Box */
+  .search-shell {
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 8px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-shell:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--accent-soft);
+  }
+
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .search-icon {
+    margin-left: 8px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  input[type=text] {
+    flex: 1 1 280px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font: 15.5px inherit;
+    padding: 10px 6px;
+    outline: none;
+  }
+
+  input[type=text]::placeholder {
+    color: var(--muted);
+  }
+
+  .kbd-hint {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    background: var(--panel-subtle);
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font: 600 14px inherit;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  button.secondary {
+    background: var(--panel-subtle);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  button.secondary:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--border);
+  }
+
+  button.ghost {
+    padding: 6px 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: transparent;
+  }
+
+  button.ghost:hover {
+    background: var(--panel-subtle);
+    color: var(--text);
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+
+  /* Filter Drawer & Chips */
+  .filter-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 0 4px;
+    flex-wrap: wrap;
+  }
+
+  .active-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .chip button {
+    padding: 0 2px;
+    font-size: 14px;
+    line-height: 1;
+    color: inherit;
+    background: none;
+    border: none;
+  }
+
+  .filter-drawer {
+    margin-top: 8px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+
+  .filter-drawer.hidden {
+    display: none;
+  }
+
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .filter-field label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .filter-field input,
+  .filter-field select {
+    width: 100%;
+    padding: 8px 10px;
+    font: 13.5px inherit;
+    color: var(--text);
+    background: var(--panel-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
+
+  .filter-field input:focus,
+  .filter-field select:focus {
+    border-color: var(--accent);
+    background: var(--panel);
+  }
+
+  /* Starter Prompts */
+  .starters {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .starter-btn {
+    padding: 7px 13px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .starter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  /* Status & Errors */
+  .error-banner {
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--error-soft);
+    border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+    color: var(--error);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Skeleton Loader */
+  .skeleton-group {
+    margin-top: 28px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .skeleton-card {
+    height: 112px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(90deg, var(--panel) 25%, var(--panel-subtle) 50%, var(--panel) 75%);
+    background-size: 200% 100%;
+    border: 1px solid var(--border);
+    animation: shimmer 1.4s infinite linear;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Answer Card */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 30px 0 10px;
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .answer-card {
+    padding: 20px 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    line-height: 1.68;
+    white-space: pre-wrap;
+  }
+
+  .cite-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    margin: 0 2px;
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12.5px;
+    text-decoration: none;
+    vertical-align: baseline;
+    transition: all 0.15s ease;
+  }
+
+  .cite-badge:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  /* Paper Cards */
+  ol.papers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  .paper {
+    padding: 18px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  }
+
+  .paper:hover {
+    border-color: var(--border-strong);
+  }
+
+  .paper.highlight,
+  .paper:target {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .paper-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .paper-index {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 1px 7px;
+    border-radius: 5px;
+    margin-right: 6px;
+  }
+
+  .paper a.title {
+    color: var(--text);
+    font-weight: 650;
+    font-size: 16px;
+    line-height: 1.4;
+    text-decoration: none;
+  }
+
+  .paper a.title:hover {
+    color: var(--accent);
+  }
+
+  .badges {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--panel-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .pill.fulltext {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: transparent;
+  }
+
+  .meta {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .meta-sep {
+    opacity: 0.45;
+  }
+
+  .excerpt {
+    margin: 12px 0 0;
+    padding: 10px 13px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    background: var(--panel-subtle);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-secondary);
+  }
+
+  .excerpt strong {
+    color: var(--text);
+  }
+
+  .abstract {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 10px 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .abstract.open {
+    -webkit-line-clamp: unset;
+  }
+
+  .expand-hint {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .empty-state {
+    margin-top: 24px;
+    padding: 32px 20px;
+    text-align: center;
+    background: var(--panel);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    color: var(--text-secondary);
+  }
 </style>
 </head>
 <body>
+
+<header>
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <span class="brand-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+      </span>
+      <span class="brand-name">Paper Trail</span>
+    </a>
+
+    <div class="topic-control">
+      <span class="status-dot" title="Vector index connected"></span>
+      <label for="topic">Collection:</label>
+      <select id="topic">
+        <option value="LLMs & RAG">LLMs &amp; RAG</option>
+      </select>
+    </div>
+  </div>
+</header>
+
 <main>
-  <h1>Paper Trail</h1>
-  <p class="tagline">Ask a research question and get an answer backed by real papers on LLMs and RAG.</p>
+  <div class="hero">
+    <h1>Research backed by real papers.</h1>
+    <p>Search full-text sections across arXiv, OpenAlex, and Semantic Scholar, or synthesize cited answers with Claude.</p>
+  </div>
 
   <form id="form">
-    <input id="q" type="text" placeholder="e.g. How do you reduce hallucination in RAG?" autocomplete="off" required>
-    <button type="submit" data-mode="ask">Ask Claude</button>
-    <button type="submit" data-mode="search" class="secondary">Just search</button>
+    <div class="search-shell">
+      <div class="search-row">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input id="q" type="text" placeholder="Ask a research question or search keywords..." autocomplete="off" required>
+        <span class="kbd-hint" title="Press / to focus">/</span>
+        <div class="btn-group">
+          <button type="submit" class="primary" data-mode="ask">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/>
+            </svg>
+            Ask Claude
+          </button>
+          <button type="submit" class="secondary" data-mode="search">Search</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-toolbar">
+      <button type="button" id="toggleFilters" class="ghost">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        Filters
+      </button>
+      <div class="active-chips" id="activeChips"></div>
+    </div>
+
+    <div class="filter-drawer" id="filterDrawer" aria-label="Search filters">
+      <div class="filter-field">
+        <label for="minYear">Min Year</label>
+        <input id="minYear" type="number" min="1990" max="2030" placeholder="2023">
+      </div>
+      <div class="filter-field">
+        <label for="maxYear">Max Year</label>
+        <input id="maxYear" type="number" min="1990" max="2030" placeholder="2026">
+      </div>
+      <div class="filter-field">
+        <label for="minCitations">Min Citations</label>
+        <input id="minCitations" type="number" min="0" step="5" placeholder="0">
+      </div>
+      <div class="filter-field">
+        <label for="source">Source</label>
+        <select id="source">
+          <option value="">All sources</option>
+          <option value="arxiv">arXiv</option>
+          <option value="openalex">OpenAlex</option>
+          <option value="semantic_scholar">Semantic Scholar</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="section">Matched Section</label>
+        <select id="section">
+          <option value="">Any section</option>
+          <option value="abstract">Abstract</option>
+          <option value="introduction">Introduction</option>
+          <option value="methodology">Methodology</option>
+          <option value="experiments">Experiments</option>
+          <option value="results">Results</option>
+          <option value="limitations">Limitations</option>
+          <option value="conclusion">Conclusion</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <button type="button" id="resetFilters" class="secondary" style="width:100%; padding:8px 10px; font-size:13px;">Clear all</button>
+      </div>
+    </div>
   </form>
 
-  <p id="status" role="status"></p>
+  <div class="starters" id="starters">
+    <button type="button" class="starter-btn" data-q="How do you reduce hallucination in retrieval-augmented generation?">Reduce hallucination in RAG</button>
+    <button type="button" class="starter-btn" data-q="What reranking methods improve dense retrieval accuracy?">Dense retrieval reranking</button>
+    <button type="button" class="starter-btn" data-q="How are multi-hop reasoning benchmarks evaluated for LLMs?">Multi-hop LLM evaluation</button>
+  </div>
+
+  <div id="status"></div>
   <div id="results"></div>
 </main>
 
 <script>
   const form = document.getElementById("form");
   const input = document.getElementById("q");
+  const topicSelect = document.getElementById("topic");
   const statusEl = document.getElementById("status");
   const results = document.getElementById("results");
+  const startersEl = document.getElementById("starters");
+  const filterDrawer = document.getElementById("filterDrawer");
+  const activeChipsEl = document.getElementById("activeChips");
+
+  const FILTER_FIELDS = [
+    { id: "minYear", label: "Year ≥" },
+    { id: "maxYear", label: "Year ≤" },
+    { id: "minCitations", label: "Citations ≥" },
+    { id: "source", label: "Source" },
+    { id: "section", label: "Section" },
+  ];
 
   function escapeHtml(text) {
     return String(text ?? "").replace(/[&<>"']/g, c => ({
@@ -72,24 +759,162 @@
     })[c]);
   }
 
+  function formatSource(src) {
+    if (!src) return "";
+    return src.split(",").map(s => {
+      const clean = s.trim().toLowerCase();
+      if (clean === "arxiv") return "arXiv";
+      if (clean === "openalex") return "OpenAlex";
+      if (clean === "semantic_scholar") return "Semantic Scholar";
+      return s.trim();
+    }).join(" + ");
+  }
+
+  function renderFilterChips() {
+    const chips = [];
+    for (const f of FILTER_FIELDS) {
+      const val = document.getElementById(f.id).value.trim();
+      if (val) {
+        chips.push(`<span class="chip">${escapeHtml(f.label)} ${escapeHtml(val)} <button type="button" data-clear="${f.id}" aria-label="Remove filter">&times;</button></span>`);
+      }
+    }
+    activeChipsEl.innerHTML = chips.join("");
+  }
+
+  FILTER_FIELDS.forEach(f => {
+    document.getElementById(f.id).addEventListener("input", renderFilterChips);
+    document.getElementById(f.id).addEventListener("change", renderFilterChips);
+  });
+
+  activeChipsEl.addEventListener("click", e => {
+    const clearId = e.target.dataset.clear;
+    if (clearId) {
+      document.getElementById(clearId).value = "";
+      renderFilterChips();
+    }
+  });
+
+  document.getElementById("toggleFilters").addEventListener("click", () => {
+    filterDrawer.classList.toggle("hidden");
+  });
+
+  document.getElementById("resetFilters").addEventListener("click", () => {
+    FILTER_FIELDS.forEach(f => { document.getElementById(f.id).value = ""; });
+    renderFilterChips();
+  });
+
+  // Keyboard shortcut "/" to focus search bar
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "SELECT") {
+      e.preventDefault();
+      input.focus();
+    }
+  });
+
+  startersEl.addEventListener("click", e => {
+    const btn = e.target.closest(".starter-btn");
+    if (!btn) return;
+    input.value = btn.dataset.q;
+    form.requestSubmit(form.querySelector('button[data-mode="search"]'));
+  });
+
+  async function loadTopics() {
+    try {
+      const res = await fetch("/topics");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.topics?.length) return;
+      topicSelect.innerHTML = data.topics.map(t => {
+        const suffix = t.count > 0 ? ` · ${t.count} chunks` : " · empty";
+        return `<option value="${escapeHtml(t.topic)}">${escapeHtml(t.topic)}${suffix}</option>`;
+      }).join("");
+    } catch (_) {}
+  }
+
+  function renderSkeleton(mode) {
+    const answerSkel = mode === "ask" ? `<div class="skeleton-card" style="height:140px;"></div>` : "";
+    return `<div class="skeleton-group">${answerSkel}<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>`;
+  }
+
   function renderPapers(papers) {
+    if (!papers.length) {
+      return `
+        <div class="empty-state">
+          <strong>No matching papers found</strong>
+          <p style="margin:6px 0 0; font-size:14px;">Try loosening your year, citation, or section filters, or switch collections above.</p>
+        </div>`;
+    }
+
     const items = papers.map((p, i) => {
       const authors = p.authors.slice(0, 4).join(", ") + (p.authors.length > 4 ? " et al." : "");
-      const bits = [p.year, authors, p.source.replace(",", " + ")];
-      if (p.citation_count != null) bits.push(`${p.citation_count} citations`);
+      const metaBits = [
+        p.year ? `<span>${escapeHtml(p.year)}</span>` : "",
+        authors ? `<span>${escapeHtml(authors)}</span>` : "",
+        p.citation_count != null ? `<span>${escapeHtml(p.citation_count)} citations</span>` : "",
+      ].filter(Boolean).join(`<span class="meta-sep">•</span>`);
+
+      const section = p.matched_section || "abstract";
+      const isFullText = section !== "abstract";
+      const sourceLabel = formatSource(p.source);
+
+      const excerptHtml = (isFullText && p.matched_chunk && p.matched_chunk !== p.abstract)
+        ? `<div class="excerpt"><strong>Matched ${escapeHtml(section)} excerpt:</strong> ${escapeHtml(p.matched_chunk)}</div>`
+        : "";
+
       return `<li class="paper" id="paper-${i + 1}">
-        <a class="title" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">[${i + 1}] ${escapeHtml(p.title)}</a>
-        <div class="meta">${bits.filter(Boolean).map(escapeHtml).join(" · ")}</div>
-        <p class="abstract" title="Click to expand">${escapeHtml(p.abstract)}</p>
+        <div class="paper-top">
+          <div>
+            <span class="paper-index">[${i + 1}]</span>
+            <a class="title" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a>
+          </div>
+          <div class="badges">
+            ${sourceLabel ? `<span class="pill">${escapeHtml(sourceLabel)}</span>` : ""}
+            <span class="pill ${isFullText ? "fulltext" : ""}">${escapeHtml(section)}</span>
+          </div>
+        </div>
+        <div class="meta">${metaBits}</div>
+        ${excerptHtml}
+        <p class="abstract" data-abstract>${escapeHtml(p.abstract)}</p>
+        <span class="expand-hint" data-toggle-abstract>Show full abstract</span>
       </li>`;
     }).join("");
-    return `<h2>Papers</h2><ol class="papers">${items}</ol>`;
+
+    return `
+      <div class="section-header">
+        <h2 class="section-title">Retrieved Sources (${papers.length})</h2>
+      </div>
+      <ol class="papers">${items}</ol>`;
   }
 
   function renderAnswer(text) {
-    // Turn [1], [2] citations into links that jump to the matching paper
-    const linked = escapeHtml(text).replace(/\[(\d+)\]/g, '<a href="#paper-$1">[$1]</a>');
-    return `<h2>Answer</h2><div class="answer">${linked}</div>`;
+    const linked = escapeHtml(text).replace(
+      /\[(\d+)\]/g,
+      '<a class="cite-badge" href="#paper-$1" data-target="paper-$1">[$1]</a>'
+    );
+    return `
+      <div class="section-header">
+        <h2 class="section-title">Claude Synthesis</h2>
+        <button type="button" class="ghost" id="copyAnswerBtn">Copy answer</button>
+      </div>
+      <div class="answer-card" id="answerCard">${linked}</div>`;
+  }
+
+  function buildParams(q) {
+    const params = new URLSearchParams({ q, k: 5 });
+    const topic = topicSelect.value;
+    const minYear = document.getElementById("minYear").value.trim();
+    const maxYear = document.getElementById("maxYear").value.trim();
+    const minCitations = document.getElementById("minCitations").value.trim();
+    const source = document.getElementById("source").value;
+    const section = document.getElementById("section").value;
+
+    if (topic) params.set("topic", topic);
+    if (minYear) params.set("min_year", minYear);
+    if (maxYear) params.set("max_year", maxYear);
+    if (minCitations) params.set("min_citations", minCitations);
+    if (source) params.set("source", source);
+    if (section) params.set("section", section);
+    return params;
   }
 
   form.addEventListener("submit", async event => {
@@ -98,28 +923,58 @@
     const q = input.value.trim();
     if (!q) return;
 
+    startersEl.style.display = "none";
     form.querySelectorAll("button").forEach(b => b.disabled = true);
-    statusEl.className = "";
-    statusEl.textContent = mode === "ask" ? "Finding papers and asking Claude..." : "Searching papers...";
-    results.innerHTML = "";
+    statusEl.innerHTML = "";
+    results.innerHTML = renderSkeleton(mode);
 
     try {
-      const response = await fetch(`/${mode}?` + new URLSearchParams({ q, k: 5 }));
+      const response = await fetch(`/${mode}?` + buildParams(q));
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail?.[0]?.msg || data.detail || `Error ${response.status}`);
       results.innerHTML = (data.answer ? renderAnswer(data.answer) : "") + renderPapers(data.papers);
-      statusEl.textContent = "";
     } catch (error) {
-      statusEl.className = "error";
-      statusEl.textContent = error.message;
+      results.innerHTML = "";
+      statusEl.innerHTML = `<div class="error-banner">${escapeHtml(error.message)}</div>`;
     } finally {
       form.querySelectorAll("button").forEach(b => b.disabled = false);
     }
   });
 
   results.addEventListener("click", event => {
-    if (event.target.classList.contains("abstract")) event.target.classList.toggle("open");
+    const badge = event.target.closest(".cite-badge");
+    if (badge) {
+      event.preventDefault();
+      const target = document.getElementById(badge.dataset.target);
+      if (target) {
+        document.querySelectorAll(".paper.highlight").forEach(el => el.classList.remove("highlight"));
+        target.classList.add("highlight");
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => target.classList.remove("highlight"), 2500);
+      }
+      return;
+    }
+
+    const copyBtn = event.target.closest("#copyAnswerBtn");
+    if (copyBtn) {
+      const text = document.getElementById("answerCard")?.innerText || "";
+      navigator.clipboard.writeText(text);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => { copyBtn.textContent = "Copy answer"; }, 1800);
+      return;
+    }
+
+    const toggle = event.target.closest("[data-toggle-abstract], [data-abstract]");
+    if (toggle) {
+      const card = toggle.closest(".paper");
+      const abs = card.querySelector("[data-abstract]");
+      const hint = card.querySelector("[data-toggle-abstract]");
+      const isOpen = abs.classList.toggle("open");
+      if (hint) hint.textContent = isOpen ? "Show less" : "Show full abstract";
+    }
   });
+
+  loadTopics();
 </script>
 </body>
 </html>
