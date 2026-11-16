@@ -71,6 +71,13 @@ def build_where_filter(
     return {"$and": clauses}
 
 
+def rerank_text(candidate: dict) -> str:
+    """Text the reranker reads. Abstracts get no section label: it lowered ranking quality on the eval."""
+    if candidate["matched_section"] == "abstract":
+        return f"{candidate['title']}. {candidate['matched_chunk']}"
+    return f"{candidate['title']} [{candidate['matched_section']}]. {candidate['matched_chunk']}"
+
+
 def search(
     question: str,
     k: int = 5,
@@ -137,7 +144,7 @@ def search(
     if rerank and len(candidates) > 1:
         scores = rerank_scores(
             question,
-            [f"{p['title']} [{p['matched_section']}]. {p['matched_chunk']}" for p in candidates],
+            [rerank_text(p) for p in candidates],
         )
         candidates = [p for _, p in sorted(zip(scores, candidates), key=lambda pair: -pair[0])]
 

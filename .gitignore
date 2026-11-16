@@ -8,3 +8,7 @@ __pycache__/
 
 # Collected data and vector DB (regenerate with the collectors)
 data/
+
+# OS and git leftovers
+.DS_Store
+FETCH_HEAD

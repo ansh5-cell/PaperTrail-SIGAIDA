@@ -6,7 +6,10 @@ Writes a report to eval/RESULTS.md.
 Each test question in eval/questions.json lists the papers a good search should return. Metrics:
 - Hit@k:    share of questions where at least one right paper is in the top k
 - Recall@k: share of all right papers that appear in the top k
-- MRR:      mean of 1/rank of the first right paper (1.0 = always ranked first; 0 if not in the top 20)
+- MRR@k:    mean of 1/rank of the first right paper in the top k (1.0 = always ranked first)
+
+Search is called with k exactly as the app calls it, because the number of results requested changes how
+many candidates the reranker sees.
 """
 
 import argparse
@@ -19,7 +22,6 @@ from papertrail.search import search
 
 QUESTIONS_FILE = ROOT / "eval" / "questions.json"
 REPORT_FILE = ROOT / "eval" / "RESULTS.md"
-DEPTH = 20  # how far down the ranking to look for MRR
 
 
 def load_questions() -> list[dict]:
@@ -57,7 +59,7 @@ def evaluate(k: int = 5, rerank: bool = True) -> tuple[dict, list[dict]]:
         if not relevant:
             continue
 
-        results = search(item["question"], DEPTH, rerank=rerank)
+        results = search(item["question"], k, rerank=rerank)
         scores = score_question([p["title"] for p in results], relevant, k)
         rows.append({**item, "relevant": relevant, **scores, "top": [p["title"] for p in results[:k]]})
 
@@ -86,7 +88,7 @@ def write_report(summary: dict, rows: list[dict]) -> None:
         "|---|---|---|",
         f"| Hit@{k} | {summary['hit_at_k']:.0%} | Questions with at least one right paper in the top {k} |",
         f"| Recall@{k} | {summary['recall_at_k']:.0%} | Right papers that made the top {k} |",
-        f"| MRR | {summary['mrr']:.2f} | 1.0 means the first right paper is always ranked #1 |",
+        f"| MRR@{k} | {summary['mrr']:.2f} | 1.0 means the first right paper is always ranked #1 |",
         "",
         "## Per question",
         "",
@@ -94,7 +96,7 @@ def write_report(summary: dict, rows: list[dict]) -> None:
         "|---|---|---|",
     ]
     for r in rows:
-        rank = f"#{r['first_rank']}" if r["first_rank"] else f"not in top {DEPTH}"
+        rank = f"#{r['first_rank']}" if r["first_rank"] else f"not in top {k}"
         lines.append(f"| {r['question']} | {rank} | {r['recall']:.0%} |")
 
     misses = [r for r in rows if not r["hit"]]
@@ -120,6 +122,6 @@ if __name__ == "__main__":
         print(f"{rank:>5}  {r['question']}")
     print(
         f"\nHit@{args.k}: {summary['hit_at_k']:.0%}   Recall@{args.k}: {summary['recall_at_k']:.0%}   "
-        f"MRR: {summary['mrr']:.2f}   ({summary['questions']} questions)"
+        f"MRR@{args.k}: {summary['mrr']:.2f}   ({summary['questions']} questions)"
     )
     write_report(summary, rows)

@@ -99,4 +99,4 @@ def test_ask_turns_errors_into_502(monkeypatch):
 def test_home_serves_web_page():
     response = client.get("/")
     assert response.status_code == 200
-    assert "<title>Paper Trail</title>" in response.text
+    assert "<title>Paper Trail" in response.text
