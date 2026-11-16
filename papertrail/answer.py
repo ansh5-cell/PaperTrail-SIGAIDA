@@ -31,17 +31,43 @@ def format_papers(papers: list[dict]) -> str:
     blocks = []
     for i, paper in enumerate(papers, 1):
         authors = ", ".join(paper["authors"][:5]) + (" et al." if len(paper["authors"]) > 5 else "")
-        blocks.append(
-            f"[{i}] {paper['title']} ({paper['year']})\nAuthors: {authors}\nAbstract: {paper['abstract']}"
-        )
+        section = paper.get("matched_section", "abstract")
+        matched_chunk = paper.get("matched_chunk", "")
+
+        entry = f"[{i}] {paper['title']} ({paper['year']})\nAuthors: {authors}\nAbstract: {paper['abstract']}"
+        if matched_chunk and section != "abstract" and matched_chunk != paper["abstract"]:
+            entry += f"\nRelevant Excerpt ({section}): {matched_chunk}"
+        blocks.append(entry)
     return "\n\n".join(blocks)
 
 
-def answer(question: str, k: int = 5) -> dict:
+def answer(
+    question: str,
+    k: int = 5,
+    topic: str | None = None,
+    min_year: int | None = None,
+    max_year: int | None = None,
+    min_citations: int | None = None,
+    source: str | None = None,
+    section: str | None = None,
+) -> dict:
     if not ANTHROPIC_API_KEY:
         raise AnswerError("No Claude API key found. Add ANTHROPIC_API_KEY to your .env file (see .env.example).")
 
-    papers = search(question, k)
+    # Only pass filter kwargs if set so existing test mocks of search(question, k) still work seamlessly
+    filter_kwargs = {
+        key: val
+        for key, val in {
+            "topic": topic,
+            "min_year": min_year,
+            "max_year": max_year,
+            "min_citations": min_citations,
+            "source": source,
+            "section": section,
+        }.items()
+        if val is not None
+    }
+    papers = search(question, k, **filter_kwargs)
     prompt = f"Papers:\n\n{format_papers(papers)}\n\nQuestion: {question}"
 
     try:
